@@ -12,18 +12,31 @@ CAM Gateway is a Docker containerized application that converts RTSP streams to 
 
 ## Quick Start
 
-### 1. Clone the Repository
+### Option 1: From Docker Registry (Recommended)
 ```bash
-git clone <repository-url>
+# Pull and run directly from Docker Hub
+docker run -d \
+  --name cam-gateway \
+  -p 8000:8000 \
+  -p 554:554 \
+  -p 8001-8010:8001-8010 \
+  -v /path/to/data:/app/data \
+  feijo/cam-gateway:latest
+```
+
+### Option 2: From Source
+#### 1. Clone the Repository
+```bash
+git clone https://github.com/lucasfeijo/cam-gateway.git
 cd cam-gateway
 ```
 
-### 2. Create Data Directory
+#### 2. Create Data Directory
 ```bash
 mkdir -p data
 ```
 
-### 3. Build and Run with Docker Compose
+#### 3. Build and Run with Docker Compose
 ```bash
 docker-compose up -d
 ```
@@ -56,7 +69,7 @@ apt install docker-compose -y
 ### 3. Clone and Deploy
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/lucasfeijo/cam-gateway.git
 cd cam-gateway
 
 # Create data directory

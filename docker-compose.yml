@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   cam-gateway:
-    image: feijo/cam-gateway:latest
+    image: feijo/cam-gateway:latest  # Docker Hub: feijo, GitHub: lucasfeijo
     container_name: cam-gateway
     restart: unless-stopped
     ports:

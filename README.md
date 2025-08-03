@@ -61,6 +61,19 @@ Each registered stream will be available as an ONVIF device at:
 ## Deployment
 
 ### Docker Deployment
+
+#### From Registry (Recommended)
+```bash
+docker run -d \
+  --name cam-gateway \
+  -p 8000:8000 \
+  -p 554:554 \
+  -p 8001-8010:8001-8010 \
+  -v /path/to/config:/app/data \
+  feijo/cam-gateway:latest
+```
+
+#### From Source
 ```bash
 docker build -t cam-gateway .
 docker run -d \
