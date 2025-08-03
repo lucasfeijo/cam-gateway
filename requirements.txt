@@ -4,7 +4,7 @@ sqlalchemy==2.0.23
 pydantic==2.5.0
 python-multipart==0.0.6
 aiofiles==23.2.1
-python-onvif-zeep==0.3.1
+onvif-zeep==0.2.12
 ffmpeg-python==0.2.0
 requests==2.31.0
 jinja2==3.1.2
