@@ -1,0 +1,43 @@
+# ZimaOS Container Configuration for CAM Gateway
+# Copy these settings when adding the container in ZimaOS
+
+# Basic Container Info
+name: "CAM Gateway"
+image: "feijo/cam-gateway:latest"
+restart: "unless-stopped"
+
+# Port Mappings (Required)
+ports:
+  - "8000:8000"    # Web interface and API
+  - "554:554"      # RTSP protocol
+  - "8001:8001"    # ONVIF stream 1
+  - "8002:8002"    # ONVIF stream 2
+  - "8003:8003"    # ONVIF stream 3
+  - "8004:8004"    # ONVIF stream 4
+  - "8005:8005"    # ONVIF stream 5
+  - "8006:8006"    # ONVIF stream 6
+  - "8007:8007"    # ONVIF stream 7
+  - "8008:8008"    # ONVIF stream 8
+  - "8009:8009"    # ONVIF stream 9
+  - "8010:8010"    # ONVIF stream 10
+
+# Volume Mappings (Required)
+volumes:
+  - "/opt/zimaos/apps/cam-gateway/data:/app/data"
+
+# Environment Variables
+environment:
+  - "DATABASE_URL=/app/data/streams.db"
+  - "ONVIF_PORT=8000"
+  - "RTSP_PORT=554"
+  - "LOG_LEVEL=INFO"
+
+# Capabilities (Optional - for FFmpeg)
+cap_add:
+  - "SYS_ADMIN"
+  - "NET_ADMIN"
+  - "SYS_NICE"
+
+# Resource Limits (Optional)
+memory: "1G"
+cpu: "2" 

@@ -1,0 +1,90 @@
+# ZimaOS Configuration for CAM Gateway
+# This file contains the configuration needed to deploy CAM Gateway in ZimaOS
+
+name: "CAM Gateway"
+description: "RTSP to ONVIF Proxy for UniFi Protect Integration"
+version: "1.0.0"
+image: "feijo/cam-gateway:latest"
+
+# Container Configuration
+container:
+  name: "cam-gateway"
+  restart: "unless-stopped"
+  
+  # Port Mappings
+  ports:
+    - "8000:8000"    # Web interface and API
+    - "554:554"      # RTSP protocol
+    - "8001:8001"    # ONVIF stream 1
+    - "8002:8002"    # ONVIF stream 2
+    - "8003:8003"    # ONVIF stream 3
+    - "8004:8004"    # ONVIF stream 4
+    - "8005:8005"    # ONVIF stream 5
+    - "8006:8006"    # ONVIF stream 6
+    - "8007:8007"    # ONVIF stream 7
+    - "8008:8008"    # ONVIF stream 8
+    - "8009:8009"    # ONVIF stream 9
+    - "8010:8010"    # ONVIF stream 10
+  
+  # Volume Mappings
+  volumes:
+    - "/opt/zimaos/apps/cam-gateway/data:/app/data"  # Persistent data storage
+  
+  # Environment Variables
+  environment:
+    - "DATABASE_URL=/app/data/streams.db"
+    - "ONVIF_PORT=8000"
+    - "RTSP_PORT=554"
+    - "LOG_LEVEL=INFO"
+  
+  # Capabilities (if needed for FFmpeg)
+  cap_add:
+    - "SYS_ADMIN"      # For FFmpeg operations
+    - "NET_ADMIN"      # For network operations
+    - "SYS_NICE"       # For process priority
+  
+  # Resource Limits
+  resources:
+    memory: "1G"
+    cpu: "2"
+  
+  # Network Configuration
+  network_mode: "bridge"
+  
+  # Health Check
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+    interval: "30s"
+    timeout: "10s"
+    retries: 3
+    start_period: "40s"
+
+# ZimaOS Specific Settings
+zimaos:
+  category: "Media"
+  tags:
+    - "rtsp"
+    - "onvif"
+    - "camera"
+    - "unifi"
+    - "proxy"
+  
+  # Auto-start with ZimaOS
+  autostart: true
+  
+  # Web interface configuration
+  web_interface:
+    port: 8000
+    path: "/"
+    title: "CAM Gateway"
+    description: "RTSP to ONVIF Proxy Management Interface"
+  
+  # Backup configuration
+  backup:
+    include_volumes: true
+    include_config: true
+  
+  # Update configuration
+  update:
+    auto_update: false
+    check_interval: "24h" 

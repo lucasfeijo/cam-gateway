@@ -28,11 +28,16 @@ class StreamManager:
                 
             # Build RTSP URL with credentials if provided
             rtsp_url = stream.rtsp_url
+            if not rtsp_url.startswith("rtsp://"):
+                rtsp_url = f"rtsp://{rtsp_url}"
+                
             if stream.username and stream.password:
                 # Insert credentials into RTSP URL
                 if "://" in rtsp_url:
                     protocol, rest = rtsp_url.split("://", 1)
-                    rtsp_url = f"{protocol}://{stream.username}:{stream.password}@{rest}"
+                    # Check if credentials are already in the URL
+                    if "@" not in rest:
+                        rtsp_url = f"{protocol}://{stream.username}:{stream.password}@{rest}"
             
             # Create ONVIF proxy endpoint
             onvif_port = stream.onvif_port or (8001 + stream.id)
@@ -47,6 +52,7 @@ class StreamManager:
                 f"rtsp://0.0.0.0:{onvif_port}/stream"
             ]
             
+            logger.info(f"Starting stream {stream.id} with RTSP URL: {rtsp_url}")
             logger.info(f"Starting stream {stream.id} with command: {' '.join(cmd)}")
             
             # Start the FFmpeg process

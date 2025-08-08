@@ -6,9 +6,11 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 import uvicorn
 
-from app.database import create_tables
+from app.database import create_tables, get_db
 from app.api import router as api_router
 from app.onvif_server import ONVIFServer
+from app.models import Stream
+from app.stream_manager import stream_manager
 
 # Configure logging
 logging.basicConfig(
@@ -111,7 +113,22 @@ async def startup_event():
     """Application startup event"""
     logger.info("CAM Gateway starting up...")
     
-    # Initialize any startup tasks here
+    # Start all enabled streams
+    try:
+        db = next(get_db())
+        enabled_streams = db.query(Stream).filter(Stream.enabled == True).all()
+        
+        for stream in enabled_streams:
+            logger.info(f"Starting enabled stream: {stream.name} (ID: {stream.id})")
+            success = await stream_manager.start_stream(stream)
+            if success:
+                logger.info(f"Stream {stream.id} started successfully")
+            else:
+                logger.error(f"Failed to start stream {stream.id}")
+                
+    except Exception as e:
+        logger.error(f"Error starting streams: {str(e)}")
+    
     logger.info("CAM Gateway started successfully")
 
 @app.on_event("shutdown")

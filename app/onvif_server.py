@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Dict, Optional
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import XMLResponse, PlainTextResponse
+from fastapi.responses import Response as FastAPIResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 from app.models import Stream
 from app.database import get_db
@@ -39,13 +39,13 @@ class ONVIFServer:
             """RTSP stream endpoint"""
             return await self.get_stream_endpoint(stream_id, request)
     
-    async def get_device_xml(self, stream_id: int, request: Request) -> XMLResponse:
+    async def get_device_xml(self, stream_id: int, request: Request) -> FastAPIResponse:
         """Generate ONVIF device XML"""
         db = next(get_db())
         stream = db.query(Stream).filter(Stream.id == stream_id).first()
         
         if not stream:
-            return XMLResponse(content="<error>Stream not found</error>", status_code=404)
+            return FastAPIResponse(content="<error>Stream not found</error>", status_code=404, media_type="application/xml")
         
         host = request.headers.get("host", "localhost")
         base_url = f"http://{host}"
@@ -64,9 +64,9 @@ class ONVIFServer:
     </soap:Body>
 </soap:Envelope>"""
         
-        return XMLResponse(content=device_xml)
+        return FastAPIResponse(content=device_xml, media_type="application/xml")
     
-    async def get_media_wsdl(self, stream_id: int, request: Request) -> XMLResponse:
+    async def get_media_wsdl(self, stream_id: int, request: Request) -> FastAPIResponse:
         """Generate ONVIF media WSDL"""
         host = request.headers.get("host", "localhost")
         base_url = f"http://{host}"
@@ -123,15 +123,15 @@ class ONVIFServer:
     </service>
 </definitions>"""
         
-        return XMLResponse(content=media_wsdl)
+        return FastAPIResponse(content=media_wsdl, media_type="application/xml")
     
-    async def get_media_service(self, stream_id: int, request: Request) -> XMLResponse:
+    async def get_media_service(self, stream_id: int, request: Request) -> FastAPIResponse:
         """Handle ONVIF media service requests"""
         db = next(get_db())
         stream = db.query(Stream).filter(Stream.id == stream_id).first()
         
         if not stream:
-            return XMLResponse(content="<error>Stream not found</error>", status_code=404)
+            return FastAPIResponse(content="<error>Stream not found</error>", status_code=404, media_type="application/xml")
         
         host = request.headers.get("host", "localhost")
         onvif_port = stream.onvif_port or (8001 + stream.id)
@@ -157,7 +157,7 @@ class ONVIFServer:
     </soap:Body>
 </soap:Envelope>"""
             
-            return XMLResponse(content=response_xml)
+            return FastAPIResponse(content=response_xml, media_type="application/xml")
         else:
             # Generic response for other operations
             response_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -175,7 +175,7 @@ class ONVIFServer:
     </soap:Body>
 </soap:Envelope>"""
             
-            return XMLResponse(content=response_xml, status_code=500)
+            return FastAPIResponse(content=response_xml, status_code=500, media_type="application/xml")
     
     async def get_stream_endpoint(self, stream_id: int, request: Request) -> Response:
         """Handle RTSP stream requests"""
