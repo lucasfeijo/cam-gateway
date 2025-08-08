@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libswscale-dev \
     libavdevice-dev \
     curl \
+    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

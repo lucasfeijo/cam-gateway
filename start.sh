@@ -7,6 +7,10 @@ set -e
 
 echo "=== CAM Gateway Starting ==="
 echo "Timestamp: $(date)"
+echo "System Information:"
+echo "  User: $(whoami)"
+echo "  Working Directory: $(pwd)"
+echo "  Python Version: $(python3 --version)"
 echo "Environment:"
 echo "  DATABASE_URL: ${DATABASE_URL:-/app/data/streams.db}"
 echo "  ONVIF_PORT: ${ONVIF_PORT:-8000}"
@@ -32,9 +36,13 @@ fi
 
 # Check if required ports are available
 echo "Checking port availability..."
-if ! netstat -tuln | grep -q ":8000 "; then
-    echo "ERROR: Port 8000 is already in use"
-    exit 1
+if command -v netstat &> /dev/null; then
+    if netstat -tuln | grep -q ":8000 "; then
+        echo "ERROR: Port 8000 is already in use"
+        exit 1
+    fi
+else
+    echo "WARNING: netstat not available, skipping port check"
 fi
 
 # Test database connectivity
@@ -42,14 +50,18 @@ echo "Testing database..."
 python3 -c "
 import sqlite3
 import os
+import sys
 db_path = os.getenv('DATABASE_URL', '/app/data/streams.db')
+print(f'Database path: {db_path}')
 try:
     conn = sqlite3.connect(db_path)
+    conn.execute('CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY)')
+    conn.commit()
     conn.close()
     print('Database connection successful')
 except Exception as e:
     print(f'Database error: {e}')
-    exit(1)
+    sys.exit(1)
 "
 
 # Start the application
