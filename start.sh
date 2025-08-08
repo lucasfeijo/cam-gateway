@@ -1,192 +1,57 @@
 #!/bin/bash
 
-# CAM Gateway Startup Script
-# This script helps deploy and manage the CAM Gateway application
+# CAM Gateway Startup Script for ZimaOS
+# This script provides better error handling and logging
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+echo "=== CAM Gateway Starting ==="
+echo "Timestamp: $(date)"
+echo "Environment:"
+echo "  DATABASE_URL: ${DATABASE_URL:-/app/data/streams.db}"
+echo "  ONVIF_PORT: ${ONVIF_PORT:-8000}"
+echo "  RTSP_PORT: ${RTSP_PORT:-554}"
+echo "  LOG_LEVEL: ${LOG_LEVEL:-INFO}"
 
-# Configuration
-COMPOSE_FILE="docker-compose.yml"
-DATA_DIR="data"
+# Check if data directory exists and is writable
+if [ ! -d "/app/data" ]; then
+    echo "Creating data directory..."
+    mkdir -p /app/data
+fi
 
-# Functions
-print_header() {
-    echo -e "${BLUE}================================${NC}"
-    echo -e "${BLUE}    CAM Gateway Manager${NC}"
-    echo -e "${BLUE}================================${NC}"
-}
+if [ ! -w "/app/data" ]; then
+    echo "ERROR: Data directory is not writable"
+    exit 1
+fi
 
-print_success() {
-    echo -e "${GREEN}✅ $1${NC}"
-}
+# Check if FFmpeg is available
+if ! command -v ffmpeg &> /dev/null; then
+    echo "ERROR: FFmpeg is not installed"
+    exit 1
+fi
 
-print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
-}
+# Check if required ports are available
+echo "Checking port availability..."
+if ! netstat -tuln | grep -q ":8000 "; then
+    echo "ERROR: Port 8000 is already in use"
+    exit 1
+fi
 
-print_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
+# Test database connectivity
+echo "Testing database..."
+python3 -c "
+import sqlite3
+import os
+db_path = os.getenv('DATABASE_URL', '/app/data/streams.db')
+try:
+    conn = sqlite3.connect(db_path)
+    conn.close()
+    print('Database connection successful')
+except Exception as e:
+    print(f'Database error: {e}')
+    exit(1)
+"
 
-print_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
-}
-
-check_docker() {
-    if ! command -v docker &> /dev/null; then
-        print_error "Docker is not installed. Please install Docker first."
-        exit 1
-    fi
-    
-    if ! command -v docker-compose &> /dev/null; then
-        print_error "Docker Compose is not installed. Please install Docker Compose first."
-        exit 1
-    fi
-    
-    print_success "Docker and Docker Compose are available"
-}
-
-create_data_dir() {
-    if [ ! -d "$DATA_DIR" ]; then
-        print_info "Creating data directory..."
-        mkdir -p "$DATA_DIR"
-        print_success "Data directory created"
-    else
-        print_info "Data directory already exists"
-    fi
-}
-
-build_and_start() {
-    print_info "Building and starting CAM Gateway..."
-    docker-compose -f "$COMPOSE_FILE" up -d --build
-    print_success "CAM Gateway started successfully"
-}
-
-stop_service() {
-    print_info "Stopping CAM Gateway..."
-    docker-compose -f "$COMPOSE_FILE" down
-    print_success "CAM Gateway stopped"
-}
-
-restart_service() {
-    print_info "Restarting CAM Gateway..."
-    docker-compose -f "$COMPOSE_FILE" restart
-    print_success "CAM Gateway restarted"
-}
-
-show_logs() {
-    print_info "Showing CAM Gateway logs..."
-    docker-compose -f "$COMPOSE_FILE" logs -f cam-gateway
-}
-
-show_status() {
-    print_info "CAM Gateway Status:"
-    docker-compose -f "$COMPOSE_FILE" ps
-    
-    echo ""
-    print_info "Container logs (last 10 lines):"
-    docker-compose -f "$COMPOSE_FILE" logs --tail=10 cam-gateway
-}
-
-test_application() {
-    print_info "Testing CAM Gateway application..."
-    
-    # Wait for application to start
-    sleep 5
-    
-    # Test health endpoint
-    if curl -s http://localhost:8000/health > /dev/null; then
-        print_success "Health check passed"
-    else
-        print_error "Health check failed"
-        return 1
-    fi
-    
-    # Test API docs
-    if curl -s http://localhost:8000/api/docs > /dev/null; then
-        print_success "API documentation accessible"
-    else
-        print_error "API documentation not accessible"
-        return 1
-    fi
-    
-    print_success "Application tests passed"
-}
-
-show_help() {
-    echo "Usage: $0 [COMMAND]"
-    echo ""
-    echo "Commands:"
-    echo "  start     - Build and start CAM Gateway"
-    echo "  stop      - Stop CAM Gateway"
-    echo "  restart   - Restart CAM Gateway"
-    echo "  logs      - Show application logs"
-    echo "  status    - Show application status"
-    echo "  test      - Test application functionality"
-    echo "  help      - Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  $0 start    # Start the application"
-    echo "  $0 logs     # View logs"
-    echo "  $0 status   # Check status"
-}
-
-# Main script
-main() {
-    print_header
-    
-    # Check if command is provided
-    if [ $# -eq 0 ]; then
-        show_help
-        exit 1
-    fi
-    
-    # Check Docker availability
-    check_docker
-    
-    # Create data directory
-    create_data_dir
-    
-    # Handle commands
-    case "$1" in
-        start)
-            build_and_start
-            test_application
-            print_info "CAM Gateway is now running at http://localhost:8000"
-            ;;
-        stop)
-            stop_service
-            ;;
-        restart)
-            restart_service
-            test_application
-            ;;
-        logs)
-            show_logs
-            ;;
-        status)
-            show_status
-            ;;
-        test)
-            test_application
-            ;;
-        help|--help|-h)
-            show_help
-            ;;
-        *)
-            print_error "Unknown command: $1"
-            show_help
-            exit 1
-            ;;
-    esac
-}
-
-# Run main function with all arguments
-main "$@" 
+# Start the application
+echo "Starting CAM Gateway..."
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level ${LOG_LEVEL:-INFO} 
